@@ -1,0 +1,67 @@
+---
+title: "WesternBlot2Images"
+author: "Hanne Grosemans"
+date: "8/22/2019"
+output: html_document
+---
+
+#Load packages
+```{r}
+library(jpeg)
+library("colorspace")
+library(caret)
+library(ggplot2)
+library("EBImage")
+library(dplyr)
+library(magick)
+```
+
+#Open file and filter
+#Crop images, remove ladder and a bit of white space
+```{r}
+ImageCTR <- readImage("CTR.jpg")
+dim(ImageCTR)
+ImageCTR <- 1 - ImageCTR^0.7
+ImageFilteredCTR <- medianFilter(ImageCTR, 1.1)
+display(ImageFilteredCTR)
+
+ImageGene <- readImage("Gene.jpg")
+dim(ImageGene)
+ImageGene <- 1 - ImageGene^0.7
+ImageFilteredGene <- medianFilter(ImageGene, 1.1)
+display(ImageFilteredGene)
+```
+
+#Read bands
+```{r}
+#the nim = c(,) is the amount of pieces your image will be cut
+TilesCTR <- untile(ImageFilteredCTR, nim = c(10, 1))
+dfCTR <- tibble()
+for (i in 1:10){
+  x <- as.matrix(TilesCTR[,,i])
+  y <- sum((x * 255) - mean(x[1:10,]))
+  dfCTR <- rbind(df, y)
+}
+
+TilesGene <- untile(ImageFilteredGene, nim = c(10, 1))
+dfGene <- tibble()
+for (i in 1:10){
+  x <- as.matrix(TilesGene[,,i])
+  y <- sum((x * 255) - mean(x[1:10,]))
+  dfGene <- rbind(df, y)
+}
+```
+
+#Calculate
+```{r}
+CTR_Base <- dfCTR[1]
+for (i in 1:10){
+  dfCTR[i] <- dfCTR[i] / CTR_Base
+}
+Blot <- dfCTR * dfGene
+```
+
+#Graph
+```{r}
+barplot(Blot, xlab = "Sample", ylab = "Intensity")
+```
