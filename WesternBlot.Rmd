@@ -1,0 +1,57 @@
+---
+title: "Western Blot"
+author: "Hanne Grosemans"
+output:
+  html_document:
+    df_print: paged
+---
+
+#Load packages
+```{r}
+library(jpeg)
+library("colorspace")
+library(caret)
+library(ggplot2)
+library("EBImage")
+library(dplyr)
+library(magick)
+```
+
+#Open file and filter
+#Crop images, remove ladder and a bit of white space
+```{r}
+Image <- readImage("trial.jpg")
+dim(Image)
+Image <- 1 - Image^0.7
+ImageFiltered <- medianFilter(Image, 1.1)
+display(ImageFiltered)
+```
+
+#Read bands
+```{r}
+#the nim = c(,) is the amount of pieces your image will be cut
+Tiles <- untile(ImageFiltered, nim = c(4, 2))
+df <- tibble()
+for (i in 1:8){
+  x <- as.matrix(Tiles[,,i])
+  y <- sum((x * 255) - mean(x[1:10,]))
+  df <- rbind(df, y)
+}
+```
+
+#Calculate
+```{r}
+Gene <- df[1:4,1]
+CTR <- df[5:8,1]
+CTR_B <- CTR[1]
+for (i in 1:4){
+  CTR[i] <- CTR[i] / CTR_B
+}
+Blot <- CTR * Gene
+```
+
+#Graph
+```{r}
+barplot(Blot, xlab = "Sample", ylab = "Intensity")
+```
+
